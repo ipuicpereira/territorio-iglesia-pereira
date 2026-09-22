@@ -1,0 +1,4 @@
+'use client';
+import {useEffect} from 'react';import {CheckCircle2,Info,XCircle} from 'lucide-react';export type ToastState={kind:'success'|'error'|'info';message:string}|null;
+export default function Toast({value,onClose}:{value:ToastState;onClose:()=>void}){useEffect(()=>{if(!value)return;const id=window.setTimeout(onClose,4500);return()=>window.clearTimeout(id)},[value,onClose]);if(!value)return null;const Icon=value.kind==='success'?CheckCircle2:value.kind==='error'?XCircle:Info;return <div role="status" className="fixed bottom-24 left-1/2 z-[1200] flex w-[min(28rem,calc(100%-1.5rem))] -translate-x-1/2 items-center gap-3 rounded-2xl bg-[#0c2347] px-4 py-3 text-sm font-semibold text-white shadow-2xl"><Icon className={value.kind==='error'?'text-[#ff8193]':'text-[#b8d0f7]'} size={21}/><span className="flex-1">{value.message}</span><button onClick={onClose} aria-label="Cerrar">×</button></div>}
+

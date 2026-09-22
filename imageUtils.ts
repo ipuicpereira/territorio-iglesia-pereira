@@ -1,0 +1,4 @@
+import imageCompression from 'browser-image-compression';
+const MAX_BYTES=300*1024;
+export async function compressPhoto(file:File):Promise<File>{if(!file.type.startsWith('image/'))throw new Error(`${file.name} no es una imagen válida.`);const compressed=await imageCompression(file,{maxSizeMB:.285,maxWidthOrHeight:1280,useWebWorker:true,fileType:'image/webp',initialQuality:.82});if(compressed.size>MAX_BYTES){const second=await imageCompression(compressed,{maxSizeMB:.275,maxWidthOrHeight:1100,useWebWorker:true,fileType:'image/webp',initialQuality:.7});if(second.size>MAX_BYTES)throw new Error(`No fue posible reducir ${file.name} a 300 KB.`);return new File([second],`${crypto.randomUUID()}.webp`,{type:'image/webp'})}return new File([compressed],`${crypto.randomUUID()}.webp`,{type:'image/webp'})}
+export const compressWorshipPhoto=compressPhoto;

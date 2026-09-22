@@ -1,0 +1,16 @@
+begin;
+alter table public.perfiles add column if not exists bloqueado boolean not null default false;
+create or replace function public.usuario_activo() returns boolean language sql stable security definer set search_path='' as $$ select exists(select 1 from public.perfiles where id=auth.uid() and not bloqueado); $$;
+revoke all on function public.usuario_activo() from public;
+grant execute on function public.usuario_activo() to authenticated;
+create or replace function public.proteger_bloqueo() returns trigger language plpgsql set search_path='' as $$ begin if new.bloqueado is distinct from old.bloqueado and auth.role()='authenticated' then raise exception 'Usa la administración de cuentas para bloquear usuarios'; end if; return NEW; end; $$;
+create trigger proteger_bloqueo before update of bloqueado on public.perfiles for each row execute function public.proteger_bloqueo();
+create policy "solo usuarios activos" on public.perfiles as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "solo usuarios activos" on public.puntos_mapa as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "solo usuarios activos" on public.rutas_evangelizadas as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "solo usuarios activos" on public.historial_cultos as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "solo usuarios activos" on public.seguimiento_amigos as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "solo usuarios activos" on public.auditoria as restrictive for all to authenticated using(public.usuario_activo()) with check(public.usuario_activo());
+create policy "fotos usuarios activos" on storage.objects as restrictive for all to authenticated using(bucket_id <> 'fotos-cultos' or public.usuario_activo()) with check(bucket_id <> 'fotos-cultos' or public.usuario_activo());
+create trigger auditar_perfiles after insert or update or delete on public.perfiles for each row execute function public.registrar_cambio();
+commit;

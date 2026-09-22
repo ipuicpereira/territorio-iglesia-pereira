@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.sites-runtime/
+.pnpm-store/
+*.tsbuildinfo
+*.tgz

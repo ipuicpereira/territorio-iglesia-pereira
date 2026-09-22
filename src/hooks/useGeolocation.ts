@@ -1,0 +1,9 @@
+'use client';
+import {useCallback,useEffect,useRef,useState} from 'react';import {distanceMeters} from '@/lib/geoUtils';
+export type TrackingStatus='idle'|'requesting'|'tracking'|'paused'|'error';
+export function useGeolocation(){const[status,setStatus]=useState<TrackingStatus>('idle');const[path,setPath]=useState<[number,number][]>([]);const[accuracy,setAccuracy]=useState<number|null>(null);const[error,setError]=useState('');const watchId=useRef<number|null>(null);
+const stopWatch=useCallback(()=>{if(watchId.current!==null)navigator.geolocation.clearWatch(watchId.current);watchId.current=null},[]);
+useEffect(()=>stopWatch,[stopWatch]);
+const start=useCallback(()=>{stopWatch();if(!('geolocation'in navigator)){setError('Este dispositivo no permite usar GPS.');setStatus('error');return}setError('');setStatus('requesting');watchId.current=navigator.geolocation.watchPosition(position=>{const next:[number,number]=[position.coords.latitude,position.coords.longitude];setAccuracy(position.coords.accuracy);setPath(current=>{const last=current.at(-1);if(last&&distanceMeters(last,next)<4)return current;return[...current,next]});setStatus('tracking')},geoError=>{setError(geoError.code===1?'Debes permitir el acceso a la ubicación para registrar la ruta.':'No se pudo obtener una ubicación GPS estable.');setStatus('error');stopWatch()},{enableHighAccuracy:true,maximumAge:2000,timeout:15000})},[stopWatch]);
+const restore=useCallback((saved:[number,number][])=>{stopWatch();setPath(saved);setStatus('paused')},[stopWatch]);
+const pause=useCallback(()=>{stopWatch();setStatus('paused')},[stopWatch]);const reset=useCallback(()=>{stopWatch();setPath([]);setAccuracy(null);setError('');setStatus('idle')},[stopWatch]);return{status,path,accuracy,error,start,pause,reset,restore,currentPosition:path.at(-1)}}

@@ -1,0 +1,8 @@
+import {getSupabase} from './supabase';
+import {lineStringWkt} from './mapData';
+export interface RouteDraft {id:string;path:[number,number][];date:string;color:string;seconds:number;outsideAccepted:boolean}
+export function draftKey(owner:string){return `ipuic-route-draft:${owner}`}
+export function queueRoute(owner:string,draft:RouteDraft){const key=`ipuic-route-queue:${owner}`;const queue:RouteDraft[]=JSON.parse(localStorage.getItem(key)??'[]');localStorage.setItem(key,JSON.stringify([...queue.filter(r=>r.id!==draft.id),draft]));}
+export async function uploadRoute(owner:string,draft:RouteDraft){const db=getSupabase();const {data:existing,error:readError}=await db.from('rutas_evangelizadas').select('id').eq('id',draft.id).maybeSingle();if(readError)throw readError;if(existing)return;const {error}=await db.from('rutas_evangelizadas').insert({id:draft.id,ruta_recorrida:lineStringWkt(draft.path),fecha_recorrido:new Date(`${draft.date}T12:00:00`).toISOString(),color:draft.color,creado_por:owner});if(error)throw error;}
+let syncing:Promise<number>|null=null;
+export function syncRoutes(){if(syncing)return syncing;syncing=(async()=>{const {data:{session}}=await getSupabase().auth.getSession();if(!session)return 0;const key=`ipuic-route-queue:${session.user.id}`;const queue:RouteDraft[]=JSON.parse(localStorage.getItem(key)??'[]');let count=0;for(const route of queue){await uploadRoute(session.user.id,route);const latest:RouteDraft[]=JSON.parse(localStorage.getItem(key)??'[]');localStorage.setItem(key,JSON.stringify(latest.filter(r=>r.id!==route.id)));count++}return count})().finally(()=>{syncing=null});return syncing}
